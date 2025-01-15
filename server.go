@@ -6,11 +6,11 @@ import (
 	"net"
 )
 
-var buff []byte = make([]byte, 1024)
-
 type proxy struct {
 	port string
 }
+
+var token string = "1234"
 
 func main() {
 	proxy_server := proxy{"9999"}
@@ -30,13 +30,35 @@ func (p *proxy) listen() {
 		if err != nil {
 			log.Println("ERROR ACCEPTING: ", err)
 		}
-		conn.Read(buff)
-		conn.Write(buff)
+		go handle_conn(conn)
+
+		continue
 	}
 
 }
 
 func handle_conn(conn net.Conn) {
-	conn.Read(buff)
+	buffer := make([]byte, 1024)
+	token_n, err := conn.Read(buffer)
+	if err != nil {
+		log.Println("ERROR RECVING: ", err)
+	}
+	client_token := string(buffer[:token_n])
+	if client_token != token {
+		log.Println("UNAUTHORISED TOKEN FROM ", conn.RemoteAddr().String(), " WITH INVALID TOKEN : ", client_token)
+		conn.Close()
+	}
+	conn.Write([]byte("200 ok"))
+
+	n, err := conn.Read(buffer)
+	if err != nil {
+		log.Println("ERROR RECVING: ", err)
+	}
+	data := string(buffer[:n])
+	log.Println("RECVED :", data, "of length", n, "bytes")
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+}
+
+func handle_traffic(data int) {
+
 }
