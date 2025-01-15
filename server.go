@@ -39,17 +39,6 @@ func (p *proxy) listen() {
 
 func handle_conn(conn net.Conn) {
 	buffer := make([]byte, 1024)
-	token_n, err := conn.Read(buffer)
-	if err != nil {
-		log.Println("ERROR RECVING: ", err)
-	}
-	client_token := string(buffer[:token_n])
-	if client_token != token {
-		log.Println("UNAUTHORISED TOKEN FROM ", conn.RemoteAddr().String(), " WITH INVALID TOKEN : ", client_token)
-		conn.Close()
-	}
-	conn.Write([]byte("200 ok"))
-
 	n, err := conn.Read(buffer)
 	if err != nil {
 		log.Println("ERROR RECVING: ", err)
