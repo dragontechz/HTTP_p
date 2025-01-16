@@ -55,7 +55,9 @@ func handleConnection(clientConn net.Conn) {
 	if err != nil {
 		log.Println("couldnot read from remote client")
 	}
-
+	buf := make([]byte, 1024)
+	conn_remote.Write(buffer[:n])
+	conn_remote.Read(buf)
 	conn_remote.Write(buffer[:n])
 
 	n, err = conn_remote.Read(buffer)
