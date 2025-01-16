@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 )
@@ -30,24 +31,37 @@ func (p *proxy) listen() {
 		if err != nil {
 			log.Println("ERROR ACCEPTING: ", err)
 		}
-		go handle_conn(conn)
+		log.Println("handling new incomming connection from :", conn.RemoteAddr().String())
 
-		continue
+		conn_remote, err := net.Dial("tcp", ":8888")
+		if err != nil {
+			log.Println("cannot dial to remote port")
+		}
+		go io.Copy(conn_remote, conn)
+
+		go io.Copy(conn, conn_remote)
 	}
 
 }
 
-func handle_conn(conn net.Conn) {
-	buffer := make([]byte, 1024)
-	n, err := conn.Read(buffer)
+func handleConnection(clientConn net.Conn) {
+	defer clientConn.Close()
+	conn_remote, err := net.Dial("tcp", ":8888")
 	if err != nil {
-		log.Println("ERROR RECVING: ", err)
+		log.Println("cannot dial to remote port")
 	}
-	data := string(buffer[:n])
-	log.Println("RECVED :", data, "of length", n, "bytes")
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-}
+	buffer := make([]byte, 1024)
+	n, err := clientConn.Read(buffer)
+	if err != nil {
+		log.Println("couldnot read from remote client")
+	}
 
-func handle_traffic(data int) {
+	conn_remote.Write(buffer[:n])
 
+	n, err = conn_remote.Read(buffer)
+	if err != nil {
+		log.Println("cannot dial to remote port")
+	}
+	clientConn.Write(buffer[:n])
+	conn_remote.Close()
 }
