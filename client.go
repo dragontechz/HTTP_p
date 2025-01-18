@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
 func main() {
 	// Définir l'adresse du serveur
 	serverAddr := net.UDPAddr{
 		Port: 8081,                     // Assurez-vous que le port correspond à celui du serveur
-		IP:   net.ParseIP("170.205.31.126"), // Remplace par l'adresse IP du serveur si nécessaire
+		IP:   net.ParseIP("localhost"), // Remplace par l'adresse IP du serveur si nécessaire
 	}
 
 	// Créer le socket UDP
@@ -25,6 +26,7 @@ func main() {
 
 	// Message à envoyer
 	message := []byte("GET {?query} HTTP/1.1//end")
+	i := 1
 	for {
 		// Envoyer le message au serveur
 		_, err = conn.Write(message)
@@ -34,6 +36,11 @@ func main() {
 		}
 		fmt.Println("Message envoyé au serveur :", string(message))
 
+		if i >= 2 {
+			time.Sleep(2 * time.Second)
+			i = 0
+		}
+		i++
 		// Préparer un buffer pour la réponse
 	}
 }
