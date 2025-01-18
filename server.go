@@ -30,13 +30,15 @@ func main() {
 			}
 
 			log.Printf("message recv from %s : %s\n", client_addr.String(), string(buff[:n]))
-			messageReponse := []byte("xbyte 200 ok")
-			_, err = conn.WriteToUDP(messageReponse, client_addr)
-			if err != nil {
-				log.Println("Erreur lors de l'envoi de la réponse :", err)
-			}
-			log.Println("SUCCESSFULLY SENT RESPONSE TO CLIENT")
-
+			go send(conn, client_addr)
 		}
 	}
+}
+func send(conn *net.UDPConn, client_addr *net.UDPAddr) {
+	messageReponse := []byte("xbyte 200 ok")
+	_, err := conn.WriteToUDP(messageReponse, client_addr)
+	if err != nil {
+		log.Println("Erreur lors de l'envoi de la réponse :", err)
+	}
+	log.Println("SUCCESSFULLY SENT RESPONSE TO CLIENT")
 }
