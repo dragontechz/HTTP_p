@@ -10,7 +10,7 @@ func main() {
 	// Définir l'adresse du serveur
 	serverAddr := net.UDPAddr{
 		Port: 8081,                     // Assurez-vous que le port correspond à celui du serveur
-		IP:   net.ParseIP("localhost"), // Remplace par l'adresse IP du serveur si nécessaire
+		IP:   net.ParseIP("170.205.31.126"), // Remplace par l'adresse IP du serveur si nécessaire
 	}
 
 	// Créer le socket UDP
