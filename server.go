@@ -1,68 +1,42 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net"
 )
 
-type proxy struct {
-	port string
-}
-
-var token string = "1234"
-
 func main() {
-	proxy_server := proxy{"9999"}
 
-	proxy_server.listen()
-}
-
-func (p *proxy) listen() {
-	lsiten, err := net.Listen("tcp", ":"+p.port)
-	if err != nil {
-		log.Println("ERROR LISTENING: ", err)
+	addr := net.UDPAddr{
+		Port: 8081,
+		IP:   net.ParseIP("localhost"),
 	}
-	fmt.Println("LISTENING ON PORT ", p.port)
 
 	for {
-		conn, err := lsiten.Accept()
+		log.Println("listening on port 8081")
+		conn, err := net.ListenUDP("udp", &addr)
+
 		if err != nil {
-			log.Println("ERROR ACCEPTING: ", err)
+
 		}
-		log.Println("handling new incomming connection from :", conn.RemoteAddr().String())
 
-		conn_remote, err := net.Dial("tcp", ":8888")
-		if err != nil {
-			log.Println("cannot dial to remote port")
+		defer conn.Close()
+
+		for {
+			buff := make([]byte, 1024)
+			n, client_addr, err := conn.ReadFromUDP(buff)
+			if err != nil {
+
+			}
+
+			log.Printf("message recv from %s : %s\n", client_addr.String(), string(buff[:n]))
+			messageReponse := []byte("xbyte 200 ok")
+			_, err = conn.WriteToUDP(messageReponse, client_addr)
+			if err != nil {
+				log.Println("Erreur lors de l'envoi de la réponse :", err)
+			}
+			log.Println("SUCCESSFULLY SENT RESPONSE TO CLIENT")
+
 		}
-		go io.Copy(conn_remote, conn)
-
-		go io.Copy(conn, conn_remote)
 	}
-
-}
-
-func handleConnection(clientConn net.Conn) {
-	defer clientConn.Close()
-	conn_remote, err := net.Dial("tcp", ":8888")
-	if err != nil {
-		log.Println("cannot dial to remote port")
-	}
-	buffer := make([]byte, 1024)
-	n, err := clientConn.Read(buffer)
-	if err != nil {
-		log.Println("couldnot read from remote client")
-	}
-	conn_remote.Write([]byte("GET HTTP"))
-	conn_remote.Read(make([]byte, 1024))
-	conn_remote.Write(buffer[:n])
-
-	n, err = conn_remote.Read(buffer)
-	if err != nil {
-		log.Println("cannot dial to remote port")
-	}
-	clientConn.Write(buffer[:n])
-	conn_remote.Close()
 }
