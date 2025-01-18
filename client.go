@@ -10,7 +10,7 @@ func main() {
 	// Définir l'adresse du serveur
 	serverAddr := net.UDPAddr{
 		Port: 8081,                     // Assurez-vous que le port correspond à celui du serveur
-		IP:   net.ParseIP("170.205.31.126"), // Remplace par l'adresse IP du serveur si nécessaire
+		IP:   net.ParseIP("localhost"), // Remplace par l'adresse IP du serveur si nécessaire
 	}
 
 	// Créer le socket UDP
@@ -20,6 +20,8 @@ func main() {
 		os.Exit(1)
 	}
 	defer conn.Close()
+
+	go recv(conn)
 
 	// Message à envoyer
 	message := []byte("GET {?query} HTTP/1.1//end")
@@ -33,17 +35,18 @@ func main() {
 		fmt.Println("Message envoyé au serveur :", string(message))
 
 		// Préparer un buffer pour la réponse
-		go recv(conn)
 	}
 }
 
 func recv(conn *net.UDPConn) {
-	buffer := make([]byte, 1024)
-	n, _, err := conn.ReadFromUDP(buffer)
-	if err != nil {
-		fmt.Println("Erreur lors de la lecture de la réponse :", err)
-		return
-	}
+	for {
+		buffer := make([]byte, 1024)
+		n, _, err := conn.ReadFromUDP(buffer)
+		if err != nil {
+			fmt.Println("Erreur lors de la lecture de la réponse :", err)
+			return
+		}
 
-	fmt.Printf("Réponse du serveur : %s\n", string(buffer[:n]))
+		fmt.Printf("Réponse du serveur : %s\n", string(buffer[:n]))
+	}
 }
