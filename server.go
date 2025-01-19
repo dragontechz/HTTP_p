@@ -1,44 +1,57 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 )
 
+type http_proxy struct {
+	port string
+}
+type client struct {
+	conn net.Conn
+}
+
 func main() {
 
-	addr := net.UDPAddr{
-		Port: 8081,
-		IP:   net.ParseIP("localhost"),
+	proxy := http_proxy{"7777"}
+
+	proxy.run()
+
+}
+
+func (p *http_proxy) run() {
+	listener, err := net.Listen("tcp", ":"+p.port)
+	fmt.Println("server listening on port: ", p.port)
+	if err != nil {
 	}
 
 	for {
-		log.Println("listening on port 8081")
-		conn, err := net.ListenUDP("udp", &addr)
-
+		conn, err := listener.Accept()
 		if err != nil {
-
 		}
 
-		defer conn.Close()
+		client := client{conn}
 
-		for {
-			buff := make([]byte, 1024)
-			n, client_addr, err := conn.ReadFromUDP(buff)
-			if err != nil {
-
-			}
-
-			log.Printf("message recv from %s : %s\n", client_addr.String(), string(buff[:n]))
-			go send(conn, client_addr)
-		}
+		log.Println("client created \nHandling client")
+		go client.handle()
+		continue
 	}
+
 }
-func send(conn *net.UDPConn, client_addr *net.UDPAddr) {
-	messageReponse := []byte("xbyte 200 ok")
-	_, err := conn.WriteToUDP(messageReponse, client_addr)
+
+func (c *client) handle() {
+	buffer := make([]byte, 1024)
+	n, err := c.conn.Read(buffer)
 	if err != nil {
-		log.Println("Erreur lors de l'envoi de la réponse :", err)
+		log.Println("ERROR RECEIVING: ", err)
 	}
-	log.Println("SUCCESSFULLY SENT RESPONSE TO CLIENT")
+	data := string(buffer[:n])
+	log.Println("RECVED number of byte: ", n, "\nwith value : ", data)
+
+	_, err = c.conn.Write([]byte("HTTP/1.1 200 OK \r\n\r\n"))
+	if err != nil {
+		log.Println("ERROR COULDN'T WRITE TO CLIENT: ", err)
+	}
 }
