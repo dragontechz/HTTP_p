@@ -1,59 +1,100 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
-	"os"
-	"time"
 )
 
+type client struct {
+	listening_port, dst_port string
+}
+
 func main() {
-	// Définir l'adresse du serveur
-	serverAddr := net.UDPAddr{
-		Port: 8081,                     // Assurez-vous que le port correspond à celui du serveur
-		IP:   net.ParseIP("170.205.31.126"), // Remplace par l'adresse IP du serveur si nécessaire
-	}
+	client_server := client{":9090", ":8888"}
 
-	// Créer le socket UDP
-	conn, err := net.DialUDP("udp", nil, &serverAddr)
+	client_server.start()
+}
+func (c *client) start() {
+	listener, err := net.Listen("tcp", c.listening_port)
 	if err != nil {
-		fmt.Println("Erreur lors de la connexion :", err)
-		os.Exit(1)
 	}
-	defer conn.Close()
+	log.Println("LISTENING ON PORT ", c.listening_port)
 
-	go recv(conn)
-
-	// Message à envoyer
-	message := []byte("GET {?query} HTTP/1.1//end")
-	i := 1
 	for {
-		// Envoyer le message au serveur
-		_, err = conn.Write(message)
+		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Erreur lors de l'envoi du message :", err)
-			return
+			log.Println("couldn't accept incomimg conn")
 		}
-		fmt.Println("Message envoyé au serveur :", string(message))
-
-		if i >= 2 {
-			time.Sleep(2 * time.Second)
-			i = 0
-		}
-		i++
-		// Préparer un buffer pour la réponse
+		go c.handle(conn)
 	}
 }
 
-func recv(conn *net.UDPConn) {
+func (c *client) handle(client net.Conn) {
 	for {
-		buffer := make([]byte, 1024)
-		n, _, err := conn.ReadFromUDP(buffer)
+		log.Println("handling client")
+		buff := make([]byte, 1024*8)
+
+		n, err := client.Read(buff)
 		if err != nil {
-			fmt.Println("Erreur lors de la lecture de la réponse :", err)
-			return
+		}
+		if n < 10 {
+
+		}
+		c.send_handle_req(buff, n, client)
+		log.Println("waiting for handle")
+	}
+
+}
+
+func (c *client) send_handle_req(buff []byte, n int, client net.Conn) {
+	server, err := net.Dial("tcp", c.dst_port)
+	if err != nil {
+		log.Println("ERROR IN CONNECTING TO REMOTE HOST")
+	}
+	data := string(buff[:n])
+	log.Println("DATA TO SEND : ", data)
+
+	_, err = server.Write(buff[:n])
+	if err != nil {
+		log.Println("CANN'T WRITE TO SERVER : ", err)
+	}
+	log.Println("SUCCESSFULLY FORWARD DATA TO SERVER")
+	buffer := make([]byte, 1024)
+	for {
+		n, err = server.Read(buffer)
+
+		if n < 1 {
+			continue
+		}
+		if err != nil {
+			log.Println(" COULDN'T RECV FROM SERVER : ", err)
 		}
 
-		fmt.Printf("Réponse du serveur : %s\n", string(buffer[:n]))
+		data = string(buffer[:n])
+		log.Println("DATA RECVED : ", data)
+
+		client.Write(buffer[:n])
+		log.Println("SUCCESFULLY FORWARD DATA TO CLIENT")
+		break
+	}
+}
+
+func (c *client) handle_recv(client, server_conn net.Conn) {
+	for {
+		buffer := make([]byte, 1024*8)
+		n, err := server_conn.Read(buffer)
+		if n < 1 {
+			continue
+		}
+		if err != nil {
+			log.Println(" COULDN'T RECV FROM SERVER : ", err)
+		}
+
+		data := string(buffer[:n])
+		log.Println("DATA RECVED : ", data)
+
+		client.Write(buffer[:n])
+		log.Println("SUCCESFULLY FORWARD DATA TO CLIENT")
+		break
 	}
 }
