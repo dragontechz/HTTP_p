@@ -10,7 +10,7 @@ type client struct {
 }
 
 func main() {
-	client_server := client{":9090", ":8888"}
+	client_server := client{":9090", "170.205.31.126:7777"}
 
 	client_server.start()
 }
@@ -18,7 +18,7 @@ func (c *client) start() {
 	listener, err := net.Listen("tcp", c.listening_port)
 	if err != nil {
 	}
-	log.Println("LISTENING ON PORT ", c.listening_port)
+	log.Println("LISTENING ON PORT ", c.listening_port, "-->", c.dst_port)
 
 	for {
 		conn, err := listener.Accept()
@@ -43,6 +43,16 @@ func (c *client) handle(client net.Conn) {
 		c.send_handle_req(buff, n, client)
 		log.Println("waiting for handle")
 	}
+
+}
+
+func wtf(val1, val2 net.Conn) (net.Conn, net.Conn) {
+
+	temp1 := *&val1
+	val1 = *&val2
+	val2 = *&temp1
+
+	return val1, val2
 
 }
 
