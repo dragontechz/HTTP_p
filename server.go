@@ -1,57 +1,51 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
 )
 
-type http_proxy struct {
-	port string
+var port string = ":8080"
+var buff []byte = make([]byte, 1024)
+
+type sshProxy interface {
+	Write([]byte) (int, error)
+	Read([]byte) (int, error)
+	Close() error
 }
-type client struct {
-	conn net.Conn
+
+type proxy struct {
+	adrr, dest_addr string
 }
 
 func main() {
+	port := flag.String("p", "8080", "port to run the server on")
+	flag.Parse()
+	p := proxy{":" + *port, ":22"}
 
-	proxy := http_proxy{"7777"}
-
-	proxy.run()
-
+	p.HTTP_proxy()
 }
 
-func (p *http_proxy) run() {
-	listener, err := net.Listen("tcp", ":"+p.port)
-	fmt.Println("server listening on port: ", p.port)
+func (p *proxy) HTTP_proxy() {
+	sock, err := net.Listen("tcp", p.adrr)
 	if err != nil {
+		fmt.Println("ERROR: ", err)
 	}
+
+	fmt.Println("server listening on port ", p.adrr)
 
 	for {
-		conn, err := listener.Accept()
+		conn, err := sock.Accept()
 		if err != nil {
+			log.Println("ERROR: ", err)
 		}
+		log.Println("new connection established by:", conn.RemoteAddr().String())
 
-		client := client{conn}
+		conn.Read(buff)
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
-		log.Println("client created \nHandling client")
-		go client.handle()
-		continue
 	}
 
-}
-
-func (c *client) handle() {
-	buffer := make([]byte, 1024)
-	n, err := c.conn.Read(buffer)
-	if err != nil {
-		log.Println("ERROR RECEIVING: ", err)
-	}
-	data := string(buffer[:n])
-	log.Println("RECVED number of byte: ", n, "\nwith value : ", data)
-
-	_, err = c.conn.Write([]byte("HTTP/1.1 200 OK \r\n\r\n"))
-	if err != nil {
-		log.Println("ERROR COULDN'T WRITE TO CLIENT: ", err)
-	}
 }
