@@ -21,7 +21,7 @@ type proxy struct {
 }
 
 func main() {
-	port := flag.String("p", "8080", "port to run the server on")
+	port := flag.String("p", "81", "port to run the server on")
 	flag.Parse()
 	p := proxy{":" + *port, ":22"}
 
