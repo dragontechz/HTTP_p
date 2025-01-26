@@ -1,51 +1,44 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"net"
 )
 
-var port string = ":81"
-var buff []byte = make([]byte, 1024)
-
-type sshProxy interface {
-	Write([]byte) (int, error)
-	Read([]byte) (int, error)
-	Close() error
-}
-
-type proxy struct {
-	adrr, dest_addr string
-}
-
 func main() {
-	port := flag.String("p", "81", "port to run the server on")
-	flag.Parse()
-	p := proxy{":" + *port, ":22"}
 
-	p.HTTP_proxy()
-}
-
-func (p *proxy) HTTP_proxy() {
-	sock, err := net.Listen("tcp", p.adrr)
-	if err != nil {
-		fmt.Println("ERROR: ", err)
+	addr := net.UDPAddr{
+		Port: 8081,
+		IP:   net.ParseIP("localhost"),
 	}
-
-	fmt.Println("server listening on port ", p.adrr)
 
 	for {
-		conn, err := sock.Accept()
+		log.Println("listening on port 8081")
+		conn, err := net.ListenUDP("udp", &addr)
+
 		if err != nil {
-			log.Println("ERROR: ", err)
+
 		}
-		log.Println("new connection established by:", conn.RemoteAddr().String())
 
-		conn.Read(buff)
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		defer conn.Close()
 
+		for {
+			buff := make([]byte, 1024)
+			n, client_addr, err := conn.ReadFromUDP(buff)
+			if err != nil {
+
+			}
+
+			log.Printf("message recv from %s : %s\n", client_addr.String(), string(buff[:n]))
+			go send(conn, client_addr)
+		}
 	}
-
+}
+func send(conn *net.UDPConn, client_addr *net.UDPAddr) {
+	messageReponse := []byte("xbyte 200 ok")
+	_, err := conn.WriteToUDP(messageReponse, client_addr)
+	if err != nil {
+		log.Println("Erreur lors de l'envoi de la réponse :", err)
+	}
+	log.Println("SUCCESSFULLY SENT RESPONSE TO CLIENT")
 }
