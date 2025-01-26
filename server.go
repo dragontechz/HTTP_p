@@ -7,7 +7,7 @@ import (
 	"net"
 )
 
-var port string = ":8080"
+var port string = ":81"
 var buff []byte = make([]byte, 1024)
 
 type sshProxy interface {
